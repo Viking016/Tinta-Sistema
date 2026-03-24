@@ -527,7 +527,7 @@ let activeCatTab='servicios', editCliId=null, editOTId=null, lineasF=[];
 // ============================================================
 // GOOGLE SHEETS API
 // ============================================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbxDYzf8EDvwPnDX5_XzVcleEImNhI5LcjhCnaSAMTteM7wPA0ivv3pnlU_O52ezv_8n/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyBv6W6zpz3ZfxYjsIbeXFYpvyVivu9f_oYJhZLsEZPR2m5KUaj48KuLcFHq7-cAmXm/exec';
 let syncStatus = 'idle'; // idle | loading | saving | error
 
 function setSyncStatus(st, msg=''){
@@ -543,7 +543,8 @@ function setSyncStatus(st, msg=''){
 
 async function apiGet(tabla){
   try{
-    const res = await fetch(API_URL + '?tabla=' + encodeURIComponent(tabla));
+    const url = API_URL + '?tabla=' + encodeURIComponent(tabla);
+    const res = await fetch(url, {redirect:'follow'});
     const data = await res.json();
     return data;
   }catch(e){console.error('GET error',tabla,e);return null;}
@@ -551,12 +552,12 @@ async function apiGet(tabla){
 
 async function apiPost(accion, tabla, payload){
   try{
-    const res = await fetch(API_URL, {
-      method:'POST',
-      body: JSON.stringify({accion, tabla, ...payload})
-    });
-    const data = await res.json();
-    return data;
+    // Google Apps Script requires no-cors mode from external origins
+    // We send data as a GET param to avoid preflight CORS issues
+    const dataStr = encodeURIComponent(JSON.stringify({accion, tabla, ...payload}));
+    const url = API_URL + '?guardar=' + dataStr;
+    await fetch(url, {method:'GET', mode:'no-cors', redirect:'follow'});
+    return {ok: true};
   }catch(e){console.error('POST error',e);return null;}
 }
 

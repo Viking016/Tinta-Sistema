@@ -456,60 +456,6 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif;}
 <input type="file" id="file-import" style="display:none" accept=".xlsx,.xls">
 
 <script>
-// ============================================================
-// APPS SCRIPT CODE — paste this in your Google Apps Script
-// ============================================================
-/*
-const SHEET_ID = 'YOUR_SHEET_ID_HERE'; // ← replace with your Sheet ID
-
-function doGet(e) {
-  const tabla = e.parameter.tabla;
-  const ss = SpreadsheetApp.openById(SHEET_ID);
-  const sheet = ss.getSheetByName(tabla);
-  if (!sheet) return json({error: 'Hoja no encontrada: ' + tabla});
-  const data = sheet.getDataRange().getValues();
-  if (data.length < 2) return json([]);
-  const headers = data[0];
-  const rows = data.slice(1).filter(r => r[0] !== '').map(row => {
-    let obj = {};
-    headers.forEach((h, i) => obj[h] = row[i] === undefined ? '' : row[i]);
-    return obj;
-  });
-  return json(rows);
-}
-
-function doPost(e) {
-  try {
-    const p = JSON.parse(e.postData.contents);
-    const ss = SpreadsheetApp.openById(SHEET_ID);
-    if (p.accion === 'sync') {
-      syncSheet(ss, 'Clientes', p.cliHeaders, p.cliRows);
-      syncSheet(ss, 'Producción', p.prodHeaders, p.prodRows);
-      syncSheet(ss, 'Cuentas', p.cuentaHeaders, p.cuentaRows);
-    }
-    return json({ok: true});
-  } catch(err) {
-    return json({error: err.message});
-  }
-}
-
-function syncSheet(ss, nombre, headers, rows) {
-  let sheet = ss.getSheetByName(nombre);
-  if (!sheet) sheet = ss.insertSheet(nombre);
-  sheet.clearContents();
-  if (headers && headers.length) sheet.appendRow(headers);
-  rows.forEach(row => sheet.appendRow(row));
-}
-
-function json(data) {
-  return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-*/
-
-// ============================================================
-// DATA
-// ============================================================
 const CAT_KEYS=['servicios','prendas','telas','costureros','diseñadores','tallas'];
 const CAT_LABELS={servicios:'Servicios',prendas:'Prendas',telas:'Telas',costureros:'Costureros','diseñadores':'Diseñadores',tallas:'Tallas'};
 const DEF_CAT={
@@ -552,15 +498,19 @@ async function apiGet(tabla){
 
 async function apiPost(accion, tabla, payload){
   try{
-    // Google Apps Script requires no-cors mode from external origins
-    // We send data as a GET param to avoid preflight CORS issues
-    const dataStr = encodeURIComponent(JSON.stringify({accion, tabla, ...payload}));
-    const url = API_URL + '?guardar=' + dataStr;
-    await fetch(url, {method:'GET', mode:'no-cors', redirect:'follow'});
+    const body = JSON.stringify({accion, tabla, ...payload});
+    await fetch(API_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type': 'text/plain'},
+      body: body
+    });
     return {ok: true};
-  }catch(e){console.error('POST error',e);return null;}
+  }catch(e){
+    console.error('POST error',e);
+    return null;
+  }
 }
-
 async function loadDB(){
   setSyncStatus('loading','Cargando...');
   // Always load catalog from defaults first

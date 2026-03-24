@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TINTA — Sistema de Producción</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:#F7F5F2;--bg-card:#FFFFFF;--bg-white:#FFFFFF;
+  --nav:#111111;--nav-text:#F0EBE3;
+  --pk:#C8963E;--pk-h:#A87830;--pk-light:#DDB060;--pk-pale:#F5ECD8;--pk-xpale:#FAF5EC;
+  --text:#1A1814;--muted:#7A7060;
+  --border:#E2DAD0;--border-l:#EDE8E0;
+  --sh:0 1px 8px rgba(0,0,0,.06);--sh-lg:0 6px 24px rgba(0,0,0,.10);
+  --r:10px;--r-sm:6px;--r-lg:16px;
+  --rose:#C8506A;--rose-pale:#FAE8EC;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+h1,h2,h3,h4{font-family:'Playfair Display',serif;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--border-l);}
+::-webkit-scrollbar-thumb{background:var(--pk);border-radius:3px;}
+
+/* NAV */
+.navbar{background:var(--nav);display:flex;align-items:center;padding:0 20px;height:56px;position:fixed;top:0;left:0;right:0;z-index:1000;gap:6px;border-bottom:1px solid #2A2A2A;}
+.nav-brand{font-family:'Playfair Display',serif;color:#FFD6EC;font-size:1.15rem;font-weight:700;letter-spacing:3px;margin-right:12px;white-space:nowrap;flex-shrink:0;text-transform:uppercase;}
+.nav-brand span{color:var(--pk-light);letter-spacing:1px;}
+.nav-links{display:flex;gap:2px;flex:1;flex-wrap:wrap;}
+.nav-link{color:#7A3A5A;padding:5px 11px;border-radius:var(--r-sm);cursor:pointer;font-size:0.8rem;font-weight:500;transition:all .2s;white-space:nowrap;border:none;background:none;font-family:'DM Sans',sans-serif;}
+.nav-link:hover{color:var(--nav-text);background:rgba(200,150,62,.12);}
+.nav-link.active{color:var(--pk-light);background:rgba(200,150,62,.2);}
+.main-content{padding:72px 22px 32px;max-width:1400px;margin:0 auto;}
+.page{display:none;}.page.active{display:block;}
+.page-header{margin-bottom:20px;}.page-header h2{font-size:1.55rem;font-weight:700;}.page-header p{color:var(--muted);font-size:0.85rem;margin-top:3px;}
+.page-hrow{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:500;cursor:pointer;border:none;transition:all .2s;white-space:nowrap;}
+.btn-primary{background:var(--pk);color:#fff;}.btn-primary:hover{background:var(--pk-h);}
+.btn-secondary{background:var(--bg-card);color:var(--text);border:1px solid var(--border);}.btn-secondary:hover{background:var(--pk-pale);border-color:var(--pk-light);}
+.btn-danger{background:#FEE2E2;color:#9B1C1C;border:1px solid #FCA5A5;}.btn-danger:hover{background:#FCA5A5;}
+.btn-sm{padding:4px 9px;font-size:0.76rem;}
+.btn-consolidado{background:linear-gradient(135deg,#111,#333);color:#F0EBE3;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+.btn-consolidado:hover{background:linear-gradient(135deg,#222,#444);box-shadow:0 4px 14px rgba(0,0,0,.35);}
+.btn-icon{padding:5px 7px;border-radius:var(--r-sm);background:transparent;border:1px solid var(--border);cursor:pointer;font-size:0.82rem;transition:all .2s;font-family:'DM Sans',sans-serif;}
+.btn-icon:hover{background:var(--pk-pale);border-color:var(--pk-light);}
+.btn-icon.danger:hover{background:#FEE2E2;border-color:#FCA5A5;}
+
+/* CARDS */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);padding:18px;}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);padding:18px 18px 0;overflow:hidden;}
+.stat-card .s-bar{height:4px;margin-top:18px;border-radius:0 0 var(--r) var(--r);}
+.stat-card .s-label{font-size:0.73rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+.stat-card .s-value{font-family:'Playfair Display',serif;font-size:1.75rem;font-weight:700;margin:5px 0 2px;}
+.stat-card .s-sub{font-size:0.75rem;color:var(--muted);}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:14px;margin-bottom:20px;}
+.charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;margin-bottom:20px;}
+.chart-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:18px;}
+.chart-card h3{font-size:0.95rem;margin-bottom:14px;}
+
+/* TABLES */
+.table-wrap{overflow-x:auto;}
+.dtable{width:100%;border-collapse:collapse;font-size:0.81rem;}
+.dtable th{background:#F5F3EF;padding:9px 11px;text-align:left;font-weight:600;font-size:0.72rem;text-transform:uppercase;letter-spacing:.3px;color:#5A5248;border-bottom:1px solid var(--border);white-space:nowrap;}
+.dtable td{padding:9px 11px;border-bottom:1px solid var(--border-l);vertical-align:middle;}
+.dtable tr:hover td{background:var(--pk-xpale);}
+.dtable tr:last-child td{border-bottom:none;}
+.tactions{display:flex;gap:3px;}
+
+/* BADGES */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:0.7rem;font-weight:600;white-space:nowrap;}
+.b-green{background:#DCFCE7;color:#166534;}.b-yellow{background:#FEF9C3;color:#854D0E;}
+.b-red{background:#FEE2E2;color:#9B1C1C;}.b-blue{background:#DBEAFE;color:#1E40AF;}
+.b-gray{background:#F1F5F9;color:#475569;}.b-purple{background:#EDE9FE;color:#5B21B6;}
+.b-pink{background:var(--pk-pale);color:var(--pk-h);}
+
+/* TOOLBAR */
+.toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+.sbox{display:flex;align-items:center;gap:7px;background:var(--bg-white);border:1px solid var(--border);border-radius:var(--r-sm);padding:6px 10px;flex:1;min-width:180px;max-width:320px;}
+.sbox input{border:none;outline:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:0.82rem;width:100%;color:var(--text);}
+.sbox span{color:var(--muted);font-size:0.85rem;}
+.fsel{border:1px solid var(--border);border-radius:var(--r-sm);padding:6px 9px;background:var(--bg-white);font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--text);cursor:pointer;outline:none;}
+
+/* MODALS */
+.moverlay{display:none;position:fixed;inset:0;background:rgba(26,0,16,.55);backdrop-filter:blur(2px);z-index:2000;align-items:center;justify-content:center;padding:16px;}
+.moverlay.open{display:flex;}
+.modal{background:var(--bg-card);border-radius:var(--r-lg);box-shadow:var(--sh-lg);width:100%;max-width:680px;max-height:92vh;overflow-y:auto;border:1px solid var(--border);}
+.modal-lg{max-width:980px;}
+.mhead{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:2px solid var(--pk-pale);position:sticky;top:0;background:var(--bg-card);z-index:1;}
+.mhead h3{font-size:1.15rem;color:var(--text);}
+.mclose{background:none;border:none;font-size:1.35rem;cursor:pointer;color:var(--muted);line-height:1;padding:2px 6px;border-radius:4px;}
+.mclose:hover{background:var(--pk-pale);}
+.mbody{padding:22px;}
+.mfoot{padding:14px 22px;border-top:1px solid var(--border-l);display:flex;justify-content:flex-end;gap:8px;}
+
+/* FORMS */
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.fgroup{display:flex;flex-direction:column;gap:4px;}
+.fgroup.full{grid-column:1/-1;}
+.flabel{font-size:0.73rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
+.finput,.fsel2,.ftextarea{padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--bg-white);font-family:'DM Sans',sans-serif;font-size:0.84rem;color:var(--text);outline:none;transition:border-color .2s;}
+.finput:focus,.fsel2:focus,.ftextarea:focus{border-color:var(--pk-light);box-shadow:0 0 0 3px rgba(232,0,111,.1);}
+.ftextarea{resize:vertical;min-height:66px;}
+.fsect{margin-bottom:18px;}
+.fsect-title{font-family:'Playfair Display',serif;font-size:0.92rem;font-weight:600;margin-bottom:10px;color:var(--text);border-bottom:1px solid var(--border);padding-bottom:7px;}
+
+/* TABS */
+.tabs{display:flex;gap:3px;border-bottom:2px solid var(--border);margin-bottom:18px;flex-wrap:wrap;}
+.tab-btn{padding:7px 14px;border:none;background:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:500;color:var(--muted);border-radius:var(--r-sm) var(--r-sm) 0 0;transition:all .2s;position:relative;bottom:-2px;}
+.tab-btn:hover{color:var(--text);background:var(--pk-xpale);}
+.tab-btn.active{color:var(--pk);background:var(--bg-card);border:1px solid var(--border);border-bottom-color:var(--bg-card);font-weight:600;}
+
+/* CATALOG */
+.cat-grid{display:flex;flex-wrap:wrap;gap:7px;padding:2px 0;}
+.ctag{display:inline-flex;align-items:center;gap:6px;background:var(--pk-xpale);border:1px solid var(--pk-pale);border-radius:20px;padding:4px 11px;font-size:0.8rem;font-weight:500;}
+.ctag button{background:none;border:none;cursor:pointer;font-size:0.72rem;padding:1px 4px;border-radius:3px;color:var(--muted);transition:all .2s;}
+.ctag .del:hover{background:#FEE2E2;color:#9B1C1C;}
+
+/* OT DETAIL */
+.ot-hgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
+.ot-field .ofl{font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);}
+.ot-field .ofv{font-size:0.86rem;font-weight:500;margin-top:2px;}
+.ltable{width:100%;border-collapse:collapse;font-size:0.78rem;}
+.ltable th{background:#F5F3EF;padding:6px 8px;text-align:left;font-size:0.69rem;text-transform:uppercase;letter-spacing:.3px;color:#5A5248;border-bottom:1px solid var(--border);}
+.ltable td{padding:6px 8px;border-bottom:1px solid var(--border-l);vertical-align:middle;}
+.ltable tr:hover td{background:var(--pk-xpale);}
+.ltotal{text-align:right;padding:10px 8px;font-weight:700;font-size:0.88rem;border-top:2px solid var(--border);}
+
+/* CUENTAS */
+.cc-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;cursor:pointer;transition:all .2s;display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;}
+.cc-card:hover{border-color:var(--pk-light);box-shadow:var(--sh);}
+.abono-item{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#FAFAF8;border-radius:var(--r-sm);margin-bottom:5px;border:1px solid var(--border-l);}
+
+/* PROGRESS */
+.pbar{height:5px;background:var(--border);border-radius:3px;overflow:hidden;width:100%;}
+.pfill{height:100%;border-radius:3px;background:var(--pk);transition:width .4s;background:linear-gradient(90deg,var(--pk),var(--pk-light));}
+
+/* REPORT TABS */
+.rtabs{display:flex;gap:7px;margin-bottom:18px;}
+.rtab{padding:7px 16px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--bg-card);font-size:0.82rem;font-weight:500;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;}
+.rtab.active{background:var(--text);color:#F0EBE3;border-color:var(--text);}
+
+/* BACK */
+.backbtn{display:inline-flex;align-items:center;gap:5px;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:14px;padding:4px 0;border:none;background:none;font-family:'DM Sans',sans-serif;}
+.backbtn:hover{color:var(--pk);}
+
+/* DIVIDER */
+.div{height:1px;background:var(--border);margin:14px 0;}
+/* EMPTY */
+.empty{text-align:center;padding:44px 20px;color:var(--muted);}
+.empty .ei{font-size:2.2rem;margin-bottom:10px;opacity:.45;}
+.empty p{font-size:0.84rem;}
+
+/* LINE INPUTS */
+.linput{padding:5px 7px;border:1px solid var(--border);border-radius:4px;background:var(--bg-white);font-family:'DM Sans',sans-serif;font-size:0.76rem;color:var(--text);outline:none;}
+.linput:focus{border-color:var(--pk-light);}
+.lsel{padding:4px 5px;border:1px solid var(--border);border-radius:4px;background:var(--bg-white);font-family:'DM Sans',sans-serif;font-size:0.75rem;color:var(--text);outline:none;}
+.lsel:focus{border-color:var(--pk-light);}
+
+/* CONSOLIDADO BANNER */
+.cons-banner{background:linear-gradient(135deg,#111 0%,#2A2A2A 100%);border-radius:var(--r);padding:18px 22px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border:1px solid #3A3A3A;}
+.cons-banner h3{color:#F0EBE3;font-size:0.95rem;margin-bottom:4px;}
+.cons-banner p{color:#AAA090;font-size:0.78rem;}
+
+@media(max-width:768px){
+  .fg2,.fg3{grid-template-columns:1fr;}
+  .ot-hgrid{grid-template-columns:1fr 1fr;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .charts-grid{grid-template-columns:1fr;}
+  .nav-link{padding:4px 7px;font-size:0.73rem;}
+  .main-content{padding:64px 12px 24px;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-brand">T<span>I</span>NTA</div>
+  <span id="sync-indicator" style="font-size:0.72rem;color:#AAA090;margin-right:4px;white-space:nowrap;transition:color .3s;">☁</span>
+  <div class="nav-links">
+    <button class="nav-link" onclick="showPage('dashboard')">📊 Dashboard</button>
+    <button class="nav-link" onclick="showPage('catalogo')">📋 Base de Datos</button>
+    <button class="nav-link" onclick="showPage('clientes')">👥 Clientes</button>
+    <button class="nav-link" onclick="showPage('produccion')">🏭 Producción</button>
+    <button class="nav-link" onclick="showPage('cuentas')">💰 Cuentas</button>
+    <button class="nav-link" onclick="showPage('reportes')">📈 Reportes</button>
+  </div>
+</nav>
+
+<div class="main-content">
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page">
+  <div class="page-header"><h2>Dashboard</h2><p>Resumen general del centro de producción Tinta</p></div>
+  <div id="dash-stats" class="stats-grid"></div>
+  <div class="charts-grid">
+    <div class="chart-card"><h3>OTs por Estado</h3><canvas id="ch-estado" height="210"></canvas></div>
+    <div class="chart-card"><h3>Ingresos por Mes</h3><canvas id="ch-ingresos" height="210"></canvas></div>
+    <div class="chart-card"><h3>Top Clientes por Facturación</h3><canvas id="ch-clientes" height="210"></canvas></div>
+    <div class="chart-card"><h3>Servicios más Utilizados</h3><canvas id="ch-servicios" height="210"></canvas></div>
+  </div>
+</div>
+
+<!-- CATÁLOGO -->
+<div id="page-catalogo" class="page">
+  <div class="page-hrow">
+    <div class="page-header"><h2>Base de Datos</h2><p>Catálogo de opciones para producción</p></div>
+  </div>
+  <div class="card">
+    <div class="tabs" id="cat-tabs"></div>
+    <div id="cat-content"></div>
+  </div>
+</div>
+
+<!-- CLIENTES -->
+<div id="page-clientes" class="page">
+  <div class="page-hrow">
+    <div class="page-header"><h2>Clientes</h2><p>Registro y gestión de clientes</p></div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;">
+      <button class="btn btn-secondary" onclick="exportarModulo('clientes')">⬇ Exportar</button>
+      <button class="btn btn-secondary" onclick="importarModulo('clientes')">⬆ Importar</button>
+      <button class="btn btn-primary" onclick="abrirCli()">+ Nuevo Cliente</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="toolbar">
+      <div class="sbox"><span>🔍</span><input id="q-cli" placeholder="Buscar por nombre, ID, teléfono..." oninput="renderClis()"></div>
+      <select class="fsel" id="f-tipo-cli" onchange="renderClis()">
+        <option value="">Todos los tipos</option><option>Individual</option><option>Empresa</option><option>Institución</option>
+      </select>
+      <select class="fsel" id="f-est-cli" onchange="renderClis()">
+        <option value="">Todos los estados</option><option>Activo</option><option>Inactivo</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table class="dtable">
+        <thead><tr><th>ID</th><th>Nombre / Razón Social</th><th>CI/NIT</th><th>Teléfono</th><th>Ciudad</th><th>Tipo</th><th>Lím. Crédito</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody id="tb-clis"></tbody>
+      </table>
+    </div>
+    <div id="empty-clis" class="empty" style="display:none"><div class="ei">👥</div><p>No hay clientes registrados</p></div>
+  </div>
+</div>
+
+<!-- PRODUCCIÓN -->
+<div id="page-produccion" class="page">
+  <div class="page-hrow">
+    <div class="page-header"><h2>Producción</h2><p>Registro de Órdenes de Trabajo (OTs)</p></div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;">
+      <button class="btn btn-secondary" onclick="exportarModulo('produccion')">⬇ Exportar</button>
+      <button class="btn btn-primary" onclick="abrirOT()">+ Nueva OT</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="toolbar">
+      <div class="sbox"><span>🔍</span><input id="q-ot" placeholder="Buscar por OT, cliente, diseñador..." oninput="renderOTs()"></div>
+      <select class="fsel" id="f-est-ot" onchange="renderOTs()">
+        <option value="">Todos los estados</option><option>En Proceso</option><option>Listo</option><option>Entregado</option><option>Anulado</option>
+      </select>
+      <select class="fsel" id="f-mes-ot" onchange="renderOTs()"><option value="">Todos los meses</option></select>
+    </div>
+    <div class="table-wrap">
+      <table class="dtable">
+        <thead><tr><th>OT</th><th>Cliente</th><th>Fecha</th><th>F. Entrega</th><th>Diseñador</th><th>Líneas</th><th>Total</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody id="tb-ots"></tbody>
+      </table>
+    </div>
+    <div id="empty-ots" class="empty" style="display:none"><div class="ei">🏭</div><p>No hay órdenes de trabajo registradas</p></div>
+  </div>
+</div>
+
+<!-- CUENTAS -->
+<div id="page-cuentas" class="page">
+  <div id="cuentas-list">
+    <div class="page-hrow">
+      <div class="page-header"><h2>Estado de Cuentas</h2><p>Seguimiento de pagos por cliente</p></div>
+      <div class="sbox" style="max-width:260px;"><span>🔍</span><input id="q-cuenta" placeholder="Buscar cliente..." oninput="renderCuentas()"></div>
+    </div>
+    <div id="cuentas-body"></div>
+  </div>
+  <div id="cuentas-detail" style="display:none">
+    <button class="backbtn" onclick="volverCuentas()">← Volver a Cuentas</button>
+    <div id="cuenta-det"></div>
+  </div>
+</div>
+
+<!-- REPORTES -->
+<div id="page-reportes" class="page">
+  <div class="page-header"><h2>Reportes de Producción</h2><p>Análisis por costurero y diseñador</p></div>
+  <div class="rtabs">
+    <button class="rtab active" onclick="switchReport('costurero',this)">Por Costurero</button>
+    <button class="rtab" onclick="switchReport('diseñador',this)">Por Diseñador</button>
+  </div>
+  <div id="rep-content"></div>
+</div>
+
+</div><!-- /main-content -->
+
+<!-- MODAL CLIENTE -->
+<div id="m-cli" class="moverlay">
+  <div class="modal">
+    <div class="mhead"><h3 id="m-cli-title">Nuevo Cliente</h3><button class="mclose" onclick="cerrar('m-cli')">×</button></div>
+    <div class="mbody">
+      <div class="fsect">
+        <div class="fsect-title">Información Principal</div>
+        <div class="fg2">
+          <div class="fgroup"><label class="flabel">ID Cliente *</label><input class="finput" id="ci-id" placeholder="Ej: CLI-001"></div>
+          <div class="fgroup"><label class="flabel">Nombre / Razón Social *</label><input class="finput" id="ci-nom"></div>
+          <div class="fgroup"><label class="flabel">CI / NIT</label><input class="finput" id="ci-ci"></div>
+          <div class="fgroup"><label class="flabel">Tipo</label><select class="fsel2" id="ci-tipo"><option>Individual</option><option>Empresa</option><option>Institución</option></select></div>
+        </div>
+      </div>
+      <div class="fsect">
+        <div class="fsect-title">Contacto</div>
+        <div class="fg2">
+          <div class="fgroup"><label class="flabel">Teléfono Principal</label><input class="finput" id="ci-tel1"></div>
+          <div class="fgroup"><label class="flabel">Teléfono Secundario</label><input class="finput" id="ci-tel2"></div>
+          <div class="fgroup"><label class="flabel">Correo Electrónico</label><input class="finput" id="ci-email" type="email"></div>
+          <div class="fgroup"><label class="flabel">Canal de Contacto</label><select class="fsel2" id="ci-canal"><option>WhatsApp</option><option>Referido</option><option>Redes Sociales</option><option>Otro</option></select></div>
+        </div>
+      </div>
+      <div class="fsect">
+        <div class="fsect-title">Ubicación y Crédito</div>
+        <div class="fg2">
+          <div class="fgroup"><label class="flabel">Dirección</label><input class="finput" id="ci-dir"></div>
+          <div class="fgroup"><label class="flabel">Ciudad</label><input class="finput" id="ci-ciudad"></div>
+          <div class="fgroup"><label class="flabel">Límite de Crédito (Bs.)</label><input class="finput" id="ci-cred" type="number" min="0"></div>
+          <div class="fgroup"><label class="flabel">Estado</label><select class="fsel2" id="ci-est"><option>Activo</option><option>Inactivo</option></select></div>
+          <div class="fgroup full"><label class="flabel">Notas</label><textarea class="ftextarea" id="ci-notas"></textarea></div>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-secondary" onclick="cerrar('m-cli')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarCli()">Guardar Cliente</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL OT -->
+<div id="m-ot" class="moverlay">
+  <div class="modal modal-lg">
+    <div class="mhead"><h3 id="m-ot-title">Nueva Orden de Trabajo</h3><button class="mclose" onclick="cerrar('m-ot')">×</button></div>
+    <div class="mbody">
+      <div class="fsect">
+        <div class="fsect-title">Datos Generales</div>
+        <div class="fg3">
+          <div class="fgroup"><label class="flabel">N° OT *</label><input class="finput" id="oi-num" placeholder="Ej: OT-2024-001"></div>
+          <div class="fgroup"><label class="flabel">Fecha Creación</label><input class="finput" id="oi-fecha" type="date"></div>
+          <div class="fgroup"><label class="flabel">Fecha Aprox. Entrega</label><input class="finput" id="oi-fent" type="date"></div>
+          <div class="fgroup"><label class="flabel">Cliente *</label><select class="fsel2" id="oi-cli"></select></div>
+          <div class="fgroup"><label class="flabel">Diseñador</label><select class="fsel2" id="oi-dis"></select></div>
+          <div class="fgroup"><label class="flabel">Estado OT</label><select class="fsel2" id="oi-est"><option>En Proceso</option><option>Listo</option><option>Entregado</option><option>Anulado</option></select></div>
+        </div>
+      </div>
+      <div class="fsect">
+        <div class="fsect-title" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>Líneas de Servicio</span>
+          <button class="btn btn-sm btn-primary" onclick="addLinea()">+ Agregar Línea</button>
+        </div>
+        <div class="table-wrap">
+          <table class="ltable">
+            <thead><tr><th>#</th><th>Prenda</th><th>Talla</th><th>Servicio</th><th>Cant.</th><th>Tela</th><th>Costurero</th><th>Entallado</th><th>Glosa</th><th>P.Unit</th><th>Total</th><th></th></tr></thead>
+            <tbody id="lineas-body"></tbody>
+          </table>
+        </div>
+        <div style="text-align:right;padding:10px 4px 0;font-size:0.86rem;font-weight:600;">
+          Total: <span id="total-form" style="color:var(--pk);font-size:1rem;font-family:'Playfair Display',serif;">Bs. 0.00</span>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-secondary" onclick="cerrar('m-ot')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarOT()">Guardar OT</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VER OT -->
+<div id="m-ver-ot" class="moverlay">
+  <div class="modal modal-lg">
+    <div class="mhead"><h3 id="m-ver-title">Detalle OT</h3><button class="mclose" onclick="cerrar('m-ver-ot')">×</button></div>
+    <div class="mbody" id="m-ver-body"></div>
+    <div class="mfoot">
+      <button class="btn btn-secondary" onclick="cerrar('m-ver-ot')">Cerrar</button>
+      <button class="btn btn-primary" id="btn-edit-ver">✏ Editar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ABONO -->
+<div id="m-abono" class="moverlay">
+  <div class="modal" style="max-width:420px;">
+    <div class="mhead"><h3>Registrar Abono</h3><button class="mclose" onclick="cerrar('m-abono')">×</button></div>
+    <div class="mbody">
+      <input type="hidden" id="ab-ot">
+      <div class="fg2">
+        <div class="fgroup"><label class="flabel">Fecha del Abono</label><input class="finput" id="ab-fecha" type="date"></div>
+        <div class="fgroup"><label class="flabel">Monto (Bs.) *</label><input class="finput" id="ab-monto" type="number" min="0" step="0.01"></div>
+        <div class="fgroup full"><label class="flabel">Nota / Referencia</label><input class="finput" id="ab-nota" placeholder="Ej: Pago en efectivo, transferencia..."></div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-secondary" onclick="cerrar('m-abono')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarAbono()">Registrar Abono</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRM -->
+<div id="m-confirm" class="moverlay">
+  <div class="modal" style="max-width:360px;">
+    <div class="mhead"><h3>Confirmar</h3><button class="mclose" onclick="cerrar('m-confirm')">×</button></div>
+    <div class="mbody"><p id="confirm-msg" style="font-size:0.86rem;line-height:1.6;"></p></div>
+    <div class="mfoot">
+      <button class="btn btn-secondary" onclick="cerrar('m-confirm')">Cancelar</button>
+      <button class="btn btn-danger" id="btn-confirm">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONSOLIDADO -->
+<div id="m-consolidado" class="moverlay">
+  <div class="modal" style="max-width:520px;">
+    <div class="mhead"><h3>📦 Exportar / Importar Consolidado</h3><button class="mclose" onclick="cerrar('m-consolidado')">×</button></div>
+    <div class="mbody">
+      <p style="font-size:0.84rem;color:var(--muted);margin-bottom:18px;line-height:1.6;">El consolidado es un archivo Excel con <strong>4 hojas</strong>: Base de Datos, Clientes, Producción y Cuentas. Úsalo para respaldar toda tu información o para restaurarla.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div style="background:var(--pk-xpale);border:1px solid var(--pk-pale);border-radius:var(--r);padding:18px;text-align:center;">
+          <div style="font-size:1.8rem;margin-bottom:8px;">⬇</div>
+          <div style="font-weight:600;font-size:0.88rem;margin-bottom:5px;">Exportar Todo</div>
+          <div style="font-size:0.76rem;color:var(--muted);margin-bottom:12px;">Descarga todas las hojas en un solo archivo .xlsx</div>
+          <button class="btn btn-primary" style="width:100%;" onclick="exportarConsolidado()">Descargar Excel</button>
+        </div>
+        <div style="background:var(--pk-xpale);border:1px solid var(--pk-pale);border-radius:var(--r);padding:18px;text-align:center;">
+          <div style="font-size:1.8rem;margin-bottom:8px;">⬆</div>
+          <div style="font-weight:600;font-size:0.88rem;margin-bottom:5px;">Importar Todo</div>
+          <div style="font-size:0.76rem;color:var(--muted);margin-bottom:12px;">Carga un archivo consolidado generado por este sistema</div>
+          <button class="btn btn-secondary" style="width:100%;" onclick="importarConsolidado()">Seleccionar Archivo</button>
+        </div>
+      </div>
+      <div style="background:#FEF9C3;border:1px solid #F59E0B;border-radius:var(--r-sm);padding:10px 12px;margin-top:14px;font-size:0.77rem;color:#92400E;">
+        ⚠ <strong>Al importar:</strong> Los registros existentes con el mismo ID se actualizarán. Los nuevos se agregarán. Los registros no incluidos en el archivo <strong>no se eliminarán</strong>.
+      </div>
+    </div>
+    <div class="mfoot"><button class="btn btn-secondary" onclick="cerrar('m-consolidado')">Cerrar</button></div>
+  </div>
+</div>
+
+<input type="file" id="file-import" style="display:none" accept=".xlsx,.xls">
+
+<script>
+// ============================================================
+// APPS SCRIPT CODE — paste this in your Google Apps Script
+// ============================================================
+/*
+const SHEET_ID = 'YOUR_SHEET_ID_HERE'; // ← replace with your Sheet ID
+
+function doGet(e) {
+  const tabla = e.parameter.tabla;
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sheet = ss.getSheetByName(tabla);
+  if (!sheet) return json({error: 'Hoja no encontrada: ' + tabla});
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return json([]);
+  const headers = data[0];
+  const rows = data.slice(1).filter(r => r[0] !== '').map(row => {
+    let obj = {};
+    headers.forEach((h, i) => obj[h] = row[i] === undefined ? '' : row[i]);
+    return obj;
+  });
+  return json(rows);
+}
+
+function doPost(e) {
+  try {
+    const p = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    if (p.accion === 'sync') {
+      syncSheet(ss, 'Clientes', p.cliHeaders, p.cliRows);
+      syncSheet(ss, 'Producción', p.prodHeaders, p.prodRows);
+      syncSheet(ss, 'Cuentas', p.cuentaHeaders, p.cuentaRows);
+    }
+    return json({ok: true});
+  } catch(err) {
+    return json({error: err.message});
+  }
+}
+
+function syncSheet(ss, nombre, headers, rows) {
+  let sheet = ss.getSheetByName(nombre);
+  if (!sheet) sheet = ss.insertSheet(nombre);
+  sheet.clearContents();
+  if (headers && headers.length) sheet.appendRow(headers);
+  rows.forEach(row => sheet.appendRow(row));
+}
+
+function json(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+*/
+
+// ============================================================
+// DATA
+// ============================================================
+const CAT_KEYS=['servicios','prendas','telas','costureros','diseñadores','tallas'];
+const CAT_LABELS={servicios:'Servicios',prendas:'Prendas',telas:'Telas',costureros:'Costureros','diseñadores':'Diseñadores',tallas:'Tallas'};
+const DEF_CAT={
+  servicios:['SUBLIMACION','DTF','VINIL','BORDADO','PLANCHADO','LOGO 3D','DISEÑO SUBLIMACION VINIL Y DTF','SERVICIO DE IMPRESION','SUBLIMACION CON DTF','MUESTRA PERDIDA DE 14 SHORT QUE NO LE LLEGO AL CLIENTE','SUBLIMACION LOGO3D Y DTF','SUBLIMACION VINIL'],
+  prendas:['POLERA/VARON','POLERA/MUJER','POLERA/NIÑO','UNIFORMES/VARON','UNIFORMES/MUJER','UNIFORMES/NIÑOS','CASACAS/VARON','CASACAS/MUJER','CASACAS/NIÑOS','CROF TOP','UNIFORMES/ENTRENADOR','POLO/VARON','POLO/MUJER','POLO/NIÑOS','ALMOHADAS','SOLERA/VARON','SHORT/VARON','BANDERA','PONCHILLOS','SERVICIO DE IMPRESIÓN','POLERAS UNISEX'],
+  telas:['COLMENA','DRY FIT','ALGODÓN','COLMENA NEGRA','COLMENA AZUL','PIQUE DEPORTIVO','ANTIFLUIDO','LINO','MILANO','TELA SIETE','MICRO PERFORADA','DRY FIT - MICRO PERFORADA'],
+  costureros:['ANDRES-TINTA','JUNIOR','JORGE-TINTA','EASTER','OVIDO','GUIDO','ERLAN'],
+  'diseñadores':['DAVID','LUIS','DANIEL','CARLOS','FERNANDO'],
+  tallas:['2','3','4','5','6','8','10','12','14','16','XS','S','P','M','L','XL','2XL','3XL','4XL','5XL','40X40 CM','7XL','0.70 X 0.80','1 X 1.5']
+};
+
+let DB={cat:{},clis:[],ots:[],abonos:[]};
+let activeCatTab='servicios', editCliId=null, editOTId=null, lineasF=[];
+
+// ============================================================
+// GOOGLE SHEETS API
+// ============================================================
+const API_URL = 'https://script.google.com/macros/s/AKfycbyBv6W6zpz3ZfxYjsIbeXFYpvyVivu9f_oYJhZLsEZPR2m5KUaj48KuLcFHq7-cAmXm/exec';
+let syncStatus = 'idle'; // idle | loading | saving | error
+
+function setSyncStatus(st, msg=''){
+  syncStatus = st;
+  const el = document.getElementById('sync-indicator');
+  if(!el) return;
+  const icons = {idle:'☁', loading:'⟳', saving:'⟳', error:'⚠', ok:'✓'};
+  const colors = {idle:'#AAA090', loading:'var(--pk)', saving:'var(--pk)', error:'#C8506A', ok:'#3A7D44'};
+  el.textContent = (icons[st]||'☁') + (msg ? ' '+msg : '');
+  el.style.color = colors[st]||'#AAA090';
+  if(st==='ok') setTimeout(()=>setSyncStatus('idle'),2500);
+}
+
+async function apiGet(tabla){
+  try{
+    const res = await fetch(API_URL + '?tabla=' + encodeURIComponent(tabla));
+    const data = await res.json();
+    return data;
+  }catch(e){console.error('GET error',tabla,e);return null;}
+}
+
+async function apiPost(accion, tabla, payload){
+  try{
+    const res = await fetch(API_URL, {
+      method:'POST',
+      body: JSON.stringify({accion, tabla, ...payload})
+    });
+    const data = await res.json();
+    return data;
+  }catch(e){console.error('POST error',e);return null;}
+}
+
+async function loadDB(){
+  setSyncStatus('loading','Cargando...');
+  // Always load catalog from defaults first
+  DB.cat = {};
+  CAT_KEYS.forEach(k => { DB.cat[k] = [...DEF_CAT[k]]; });
+
+  try{
+    // Load clientes
+    const clis = await apiGet('Clientes');
+    if(clis && Array.isArray(clis) && clis.length){
+      DB.clis = clis.map(r => ({
+        id: r.ID||'', nom: r['Nombre/Razón Social']||'', ci: r['CI/NIT']||'',
+        tipo: r.Tipo||'Individual', tel1: r['Tel 1']||'', tel2: r['Tel 2']||'',
+        email: r.Email||'', canal: r.Canal||'WhatsApp', dir: r['Dirección']||'',
+        ciudad: r.Ciudad||'', cred: parseFloat(r['Límite Crédito'])||0,
+        est: r.Estado||'Activo', notas: r.Notas||'', fecha_reg: r['Fecha Registro']||today()
+      }));
+    } else { DB.clis = []; }
+
+    // Load OTs
+    const prodRows = await apiGet('Producción');
+    if(prodRows && Array.isArray(prodRows) && prodRows.length){
+      const otMap = {};
+      prodRows.forEach(r => {
+        if(!r.OT) return;
+        const otId = String(r.OT).trim();
+        if(!otMap[otId]){
+          otMap[otId] = {ot:otId, id_cli:r['ID Cliente']||'', fecha:r['Fecha Creación']||'',
+            fent:r['Fecha Entrega']||'', dis:r['Diseñador']||'', est_ot:r['Estado OT']||'En Proceso', lineas:[]};
+        }
+        otMap[otId].lineas.push({
+          cs:r['COD SERV.']||otMap[otId].lineas.length+1, prenda:r.Prenda||'',
+          talla:r.Talla||'', servicio:r.Servicio||'', cant:parseFloat(r.Cantidad)||0,
+          tela:r.Tela||'', cost:r.Costurero||'', ent:r.Entallado||'',
+          glosa:r.Glosa||'', pu:parseFloat(r['P. Unitario'])||0, total:parseFloat(r['Total Línea'])||0
+        });
+      });
+      DB.ots = Object.values(otMap);
+    } else { DB.ots = []; }
+
+    // Load Abonos
+    const abRows = await apiGet('Cuentas');
+    if(abRows && Array.isArray(abRows) && abRows.length){
+      DB.abonos = abRows.filter(r => r['ID Abono'] && r.OT).map(r => ({
+        id: String(r['ID Abono']), ot_id: String(r.OT),
+        fecha: r['Fecha Abono']||today(), monto: parseFloat(r['Monto Abono'])||0, nota: r['Nota Abono']||''
+      }));
+    } else { DB.abonos = []; }
+
+    if(!DB.clis.length && !DB.ots.length) seedData();
+    setSyncStatus('ok','Cargado');
+  }catch(e){
+    console.error('loadDB error', e);
+    setSyncStatus('error','Error al cargar');
+    // Fallback to localStorage if available
+    try{
+      const lsClis = localStorage.getItem('tinta_clis');
+      if(lsClis) DB.clis = JSON.parse(lsClis);
+      const lsOts = localStorage.getItem('tinta_ots');
+      if(lsOts) DB.ots = JSON.parse(lsOts);
+      const lsAb = localStorage.getItem('tinta_abonos');
+      if(lsAb) DB.abonos = JSON.parse(lsAb);
+    }catch(e2){}
+  }
+}
+
+async function saveDB(){
+  // Also save to localStorage as backup
+  localStorage.setItem('tinta_clis', JSON.stringify(DB.clis));
+  localStorage.setItem('tinta_ots', JSON.stringify(DB.ots));
+  localStorage.setItem('tinta_abonos', JSON.stringify(DB.abonos));
+
+  setSyncStatus('saving','Guardando...');
+  try{
+    // Build flat rows for Clientes
+    const cliRows = DB.clis.map(c => [
+      c.id, c.nom, c.ci, c.tipo, c.tel1, c.tel2, c.email, c.canal,
+      c.dir, c.ciudad, c.cred, c.est, c.notas, c.fecha_reg
+    ]);
+    // Build flat rows for Producción
+    const prodRows = [];
+    DB.ots.forEach(o => (o.lineas||[]).forEach(l => prodRows.push([
+      o.ot, o.id_cli, cliNom(o.id_cli), o.fecha, o.fent, o.dis, o.est_ot,
+      l.cs, l.prenda, l.talla, l.servicio, l.cant, l.tela, l.cost, l.ent, l.glosa, l.pu, l.total
+    ])));
+    // Build flat rows for Cuentas
+    const cuentaRows = [];
+    DB.ots.forEach(o => {
+      const abs = DB.abonos.filter(a => a.ot_id === o.ot);
+      const tot = otTotal(o), tab = otAbonado(o.ot);
+      if(abs.length){
+        abs.forEach(a => cuentaRows.push([o.ot, cliNom(o.id_cli), o.id_cli, tot, tab, tot-tab, estadoPago(o), a.id, a.fecha, a.monto, a.nota]));
+      } else {
+        cuentaRows.push([o.ot, cliNom(o.id_cli), o.id_cli, tot, 0, tot, estadoPago(o), '', '', '', '']);
+      }
+    });
+
+    await apiPost('sync', 'all', {
+      cliHeaders: ['ID','Nombre/Razón Social','CI/NIT','Tipo','Tel 1','Tel 2','Email','Canal','Dirección','Ciudad','Límite Crédito','Estado','Notas','Fecha Registro'],
+      cliRows,
+      prodHeaders: ['OT','ID Cliente','Cliente','Fecha Creación','Fecha Entrega','Diseñador','Estado OT','COD SERV.','Prenda','Talla','Servicio','Cantidad','Tela','Costurero','Entallado','Glosa','P. Unitario','Total Línea'],
+      prodRows,
+      cuentaHeaders: ['OT','Cliente','ID Cliente','Total OT','Total Abonado','Saldo','Estado Pago','ID Abono','Fecha Abono','Monto Abono','Nota Abono'],
+      cuentaRows
+    });
+    setSyncStatus('ok','Guardado ✓');
+  }catch(e){
+    console.error('saveDB error', e);
+    setSyncStatus('error','Error al guardar');
+  }
+}
+function seedData(){
+  DB.clis=[
+    {id:'CLI-001',nom:'Colegio San Andrés',ci:'123456789',tipo:'Institución',tel1:'71234567',tel2:'22334455',email:'admin@sanandres.edu.bo',canal:'WhatsApp',dir:'Av. 6 de Agosto #234',ciudad:'La Paz',cred:5000,est:'Activo',notas:'Cliente frecuente.',fecha_reg:'2024-01-10'},
+    {id:'CLI-002',nom:'Deportivo Los Cóndores',ci:'987654321',tipo:'Empresa',tel1:'76543210',tel2:'',email:'contacto@condores.com',canal:'Referido',dir:'Calle Murillo #89',ciudad:'El Alto',cred:3000,est:'Activo',notas:'',fecha_reg:'2024-02-15'},
+    {id:'CLI-003',nom:'María González',ci:'456123789',tipo:'Individual',tel1:'67890123',tel2:'',email:'maria.g@gmail.com',canal:'Redes Sociales',dir:'Zona Sur',ciudad:'La Paz',cred:500,est:'Activo',notas:'',fecha_reg:'2024-03-05'}
+  ];
+  DB.ots=[
+    {ot:'OT-2024-001',id_cli:'CLI-001',fecha:'2024-03-01',fent:'2024-03-15',dis:'DAVID',est_ot:'Entregado',lineas:[{cs:1,prenda:'POLERA/VARON',talla:'L',servicio:'SUBLIMACION',cant:20,tela:'DRY FIT',cost:'ANDRES-TINTA',ent:'',glosa:'Logotipo frontal',pu:35,total:700},{cs:2,prenda:'POLERA/MUJER',talla:'M',servicio:'SUBLIMACION',cant:15,tela:'DRY FIT',cost:'ANDRES-TINTA',ent:'Entallado talle S',glosa:'Logotipo frontal',pu:38,total:570}]},
+    {ot:'OT-2024-002',id_cli:'CLI-002',fecha:'2024-03-10',fent:'2024-03-25',dis:'LUIS',est_ot:'En Proceso',lineas:[{cs:1,prenda:'UNIFORMES/VARON',talla:'XL',servicio:'BORDADO',cant:22,tela:'ALGODÓN',cost:'JORGE-TINTA',ent:'',glosa:'Escudo en pecho',pu:45,total:990},{cs:2,prenda:'SHORT/VARON',talla:'M',servicio:'BORDADO',cant:22,tela:'ALGODÓN',cost:'JORGE-TINTA',ent:'',glosa:'Nombre equipo',pu:25,total:550}]},
+    {ot:'OT-2024-003',id_cli:'CLI-003',fecha:'2024-03-20',fent:'2024-03-28',dis:'DANIEL',est_ot:'Listo',lineas:[{cs:1,prenda:'POLERA/MUJER',talla:'S',servicio:'DTF',cant:5,tela:'COLMENA',cost:'ERLAN',ent:'',glosa:'Diseño personalizado',pu:42,total:210}]}
+  ];
+  DB.abonos=[
+    {id:'AB-001',ot_id:'OT-2024-001',fecha:'2024-03-15',monto:700,nota:'Pago total en efectivo'},
+    {id:'AB-002',ot_id:'OT-2024-001',fecha:'2024-03-15',monto:370,nota:'Abono adicional'},
+    {id:'AB-003',ot_id:'OT-2024-002',fecha:'2024-03-12',monto:500,nota:'Anticipo inicial'}
+  ];
+  saveDB();
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+const $=id=>document.getElementById(id);
+function fm(n){return'Bs. '+(parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+function fd(d){if(!d)return'—';const[y,m,dy]=d.split('-');return`${dy}/${m}/${y}`;}
+function today(){return new Date().toISOString().slice(0,10);}
+function uid(p){return p+'-'+Date.now().toString(36).toUpperCase();}
+function otTotal(o){return(o.lineas||[]).reduce((s,l)=>s+(parseFloat(l.total)||0),0);}
+function otAbonado(ot_id){return DB.abonos.filter(a=>a.ot_id===ot_id).reduce((s,a)=>s+(parseFloat(a.monto)||0),0);}
+function estadoPago(o){const t=otTotal(o),a=otAbonado(o.ot);if(t===0)return'Sin Deuda';if(a>=t)return'Pagado';if(a>0)return'Pago Parcial';return'Pendiente';}
+function cliNom(id){const c=DB.clis.find(x=>x.id===id);return c?c.nom:id;}
+function badgeOT(e){const m={'En Proceso':'b-blue','Listo':'b-yellow','Entregado':'b-green','Anulado':'b-gray'};return`<span class="badge ${m[e]||'b-gray'}">${e}</span>`;}
+function badgePago(e){const m={'Pagado':'b-green','Pendiente':'b-red','Pago Parcial':'b-yellow','Sin Deuda':'b-gray'};return`<span class="badge ${m[e]||'b-gray'}">${e}</span>`;}
+function confirm_del(msg,cb){$('confirm-msg').textContent=msg;$('btn-confirm').onclick=()=>{cb();cerrar('m-confirm');};abrir('m-confirm');}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+let charts={};
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+  $('page-'+name).classList.add('active');
+  document.querySelector(`[onclick="showPage('${name}')"]`).classList.add('active');
+  if(name==='dashboard')renderDash();
+  if(name==='catalogo')renderCat();
+  if(name==='clientes')renderClis();
+  if(name==='produccion'){renderOTs();fillMesFilter();}
+  if(name==='cuentas'){$('cuentas-list').style.display='';$('cuentas-detail').style.display='none';renderCuentas();}
+  if(name==='reportes')renderReport('costurero');
+}
+function abrir(id){$(id).classList.add('open');}
+function cerrar(id){$(id).classList.remove('open');}
+document.querySelectorAll('.moverlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDash(){
+  const totalOTs=DB.ots.length;
+  const totalFact=DB.ots.reduce((s,o)=>s+otTotal(o),0);
+  const totalAbon=DB.abonos.reduce((s,a)=>s+(parseFloat(a.monto)||0),0);
+  const pend=totalFact-totalAbon;
+  const enProc=DB.ots.filter(o=>o.est_ot==='En Proceso').length;
+  const cliAct=DB.clis.filter(c=>c.est==='Activo').length;
+  const stats=[
+    {label:'Total OTs',value:totalOTs,sub:'Órdenes registradas',color:'#E8006F'},
+    {label:'Facturado Total',value:fm(totalFact),sub:'En producción',color:'#2D6A4F'},
+    {label:'Total Cobrado',value:fm(totalAbon),sub:'Abonos recibidos',color:'#1A4A7A'},
+    {label:'Por Cobrar',value:fm(pend),sub:'Saldo pendiente',color:'#9B1C1C'},
+    {label:'En Proceso',value:enProc,sub:'OTs activas',color:'#5B21B6'},
+    {label:'Clientes Activos',value:cliAct,sub:'Registrados',color:'#9A3412'}
+  ];
+  $('dash-stats').innerHTML=stats.map(s=>`<div class="stat-card"><div class="s-label">${s.label}</div><div class="s-value">${s.value}</div><div class="s-sub">${s.sub}</div><div class="s-bar" style="background:${s.color};"></div></div>`).join('');
+  dEstado();dIngresos();dClientes();dServicios();
+}
+const CPKS=['#C8963E','#1A1814','#DDB060','#7A7060','#E2DAD0','#A87830','#3A7D44','#C8506A'];
+function dch(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function dEstado(){
+  dch('ch-estado');const es=['En Proceso','Listo','Entregado','Anulado'];
+  charts['ch-estado']=new Chart($('ch-estado').getContext('2d'),{type:'doughnut',data:{labels:es,datasets:[{data:es.map(e=>DB.ots.filter(o=>o.est_ot===e).length),backgroundColor:['#3B82F6','#F59E0B','#22C55E','#94A3B8'],borderWidth:2,borderColor:'#FFFFFF'}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{family:'DM Sans',size:11},padding:10}}}}});
+}
+function dIngresos(){
+  dch('ch-ingresos');const mn=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const d=Array(12).fill(0);DB.ots.forEach(o=>{if(o.fecha){const m=parseInt(o.fecha.split('-')[1])-1;d[m]+=otTotal(o);}});
+  charts['ch-ingresos']=new Chart($('ch-ingresos').getContext('2d'),{type:'bar',data:{labels:mn,datasets:[{label:'Bs.',data:d,backgroundColor:'rgba(232,0,111,.72)',borderColor:'#E8006F',borderWidth:1,borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{font:{family:'DM Sans',size:10}}},x:{ticks:{font:{family:'DM Sans',size:10}}}}}});
+}
+function dClientes(){
+  dch('ch-clientes');const t={};DB.ots.forEach(o=>{const n=cliNom(o.id_cli);t[n]=(t[n]||0)+otTotal(o);});
+  const s=Object.entries(t).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  charts['ch-clientes']=new Chart($('ch-clientes').getContext('2d'),{type:'bar',data:{labels:s.map(x=>x[0]),datasets:[{label:'Bs.',data:s.map(x=>x[1]),backgroundColor:CPKS,borderRadius:4}]},options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{font:{family:'DM Sans',size:10}}},y:{ticks:{font:{family:'DM Sans',size:10}}}}}});
+}
+function dServicios(){
+  dch('ch-servicios');const c={};DB.ots.forEach(o=>(o.lineas||[]).forEach(l=>{c[l.servicio]=(c[l.servicio]||0)+1;}));
+  const s=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  charts['ch-servicios']=new Chart($('ch-servicios').getContext('2d'),{type:'pie',data:{labels:s.map(x=>x[0]),datasets:[{data:s.map(x=>x[1]),backgroundColor:CPKS,borderWidth:2,borderColor:'#FFFFFF'}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{family:'DM Sans',size:10},padding:7}}}}});
+}
+
+// ============================================================
+// CATÁLOGO
+// ============================================================
+function renderCat(){
+  $('cat-tabs').innerHTML=CAT_KEYS.map(k=>`<button class="tab-btn ${k===activeCatTab?'active':''}" onclick="switchCatTab('${k}',this)">${CAT_LABELS[k]}</button>`).join('');
+  renderCatContent();
+}
+function switchCatTab(k,btn){
+  activeCatTab=k;
+  document.querySelectorAll('#cat-tabs .tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');renderCatContent();
+}
+function renderCatContent(){
+  const k=activeCatTab,items=DB.cat[k]||[];
+  $('cat-content').innerHTML=`
+    <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;">
+      <input class="finput" id="new-cat-inp" placeholder="Agregar nuevo ${CAT_LABELS[k]}..." style="max-width:320px;" onkeydown="if(event.key==='Enter')addCatItem('${k}')">
+      <button class="btn btn-primary" onclick="addCatItem('${k}')">+ Agregar</button>
+    </div>
+    <div class="cat-grid">
+      ${!items.length?'<p style="color:var(--muted);font-size:0.82rem;">Sin elementos.</p>':
+        items.map((it,i)=>`<div class="ctag"><span>${it}</span><button onclick="editCatItem('${k}',${i})">✏</button><button class="del" onclick="delCatItem('${k}',${i})">✕</button></div>`).join('')}
+    </div>`;
+}
+function addCatItem(k){const v=($('new-cat-inp').value||'').trim().toUpperCase();if(!v)return;if(DB.cat[k].includes(v)){alert('Ya existe.');return;}DB.cat[k].push(v);saveDB();$('new-cat-inp').value='';renderCatContent();}
+function editCatItem(k,i){const v=prompt('Editar:',DB.cat[k][i]);if(v===null)return;const nv=v.trim().toUpperCase();if(!nv)return;DB.cat[k][i]=nv;saveDB();renderCatContent();}
+function delCatItem(k,i){confirm_del(`¿Eliminar "${DB.cat[k][i]}"?`,()=>{DB.cat[k].splice(i,1);saveDB();renderCatContent();});}
+
+// ============================================================
+// CLIENTES
+// ============================================================
+function renderClis(){
+  const q=($('q-cli')?.value||'').toLowerCase(),tipo=$('f-tipo-cli')?.value||'',est=$('f-est-cli')?.value||'';
+  let list=DB.clis.filter(c=>{
+    const mq=!q||c.nom.toLowerCase().includes(q)||c.id.toLowerCase().includes(q)||(c.tel1||'').includes(q)||(c.ci||'').includes(q);
+    return mq&&(!tipo||c.tipo===tipo)&&(!est||c.est===est);
+  });
+  const tb=$('tb-clis'),em=$('empty-clis');
+  if(!list.length){tb.innerHTML='';em.style.display='';return;}
+  em.style.display='none';
+  tb.innerHTML=list.map(c=>`<tr>
+    <td><strong>${c.id}</strong></td><td>${c.nom}</td><td>${c.ci||'—'}</td><td>${c.tel1||'—'}</td><td>${c.ciudad||'—'}</td>
+    <td><span class="badge b-pink">${c.tipo}</span></td><td>${c.cred?fm(c.cred):'—'}</td>
+    <td><span class="badge ${c.est==='Activo'?'b-green':'b-gray'}">${c.est}</span></td>
+    <td><div class="tactions">
+      <button class="btn-icon" onclick="abrirCli('${c.id}')">✏</button>
+      <button class="btn-icon" onclick="verCliCuentas('${c.id}')">💰</button>
+      <button class="btn-icon danger" onclick="delCli('${c.id}')">🗑</button>
+    </div></td></tr>`).join('');
+}
+function abrirCli(id=null){
+  editCliId=id;$('m-cli-title').textContent=id?'Editar Cliente':'Nuevo Cliente';
+  if(id){
+    const c=DB.clis.find(x=>x.id===id);
+    $('ci-id').value=c.id;$('ci-id').disabled=true;
+    ['nom','ci','tel1','tel2','email','dir','ciudad'].forEach(f=>$(`ci-${f}`).value=c[f]||'');
+    $('ci-tipo').value=c.tipo;$('ci-canal').value=c.canal||'WhatsApp';$('ci-cred').value=c.cred||'';$('ci-est').value=c.est;$('ci-notas').value=c.notas||'';
+  }else{
+    $('ci-id').disabled=false;['ci-id','ci-nom','ci-ci','ci-tel1','ci-tel2','ci-email','ci-dir','ci-ciudad','ci-cred','ci-notas'].forEach(f=>$(f).value='');
+    $('ci-tipo').value='Individual';$('ci-canal').value='WhatsApp';$('ci-est').value='Activo';
+  }
+  abrir('m-cli');
+}
+function guardarCli(){
+  const id=$('ci-id').value.trim(),nom=$('ci-nom').value.trim();
+  if(!id||!nom){alert('ID y Nombre son requeridos.');return;}
+  if(!editCliId&&DB.clis.find(c=>c.id===id)){alert('Ya existe un cliente con ese ID.');return;}
+  const cli={id,nom,ci:$('ci-ci').value.trim(),tipo:$('ci-tipo').value,tel1:$('ci-tel1').value.trim(),tel2:$('ci-tel2').value.trim(),email:$('ci-email').value.trim(),canal:$('ci-canal').value,dir:$('ci-dir').value.trim(),ciudad:$('ci-ciudad').value.trim(),cred:parseFloat($('ci-cred').value)||0,est:$('ci-est').value,notas:$('ci-notas').value.trim(),fecha_reg:editCliId?DB.clis.find(c=>c.id===editCliId).fecha_reg:today()};
+  if(editCliId){const idx=DB.clis.findIndex(c=>c.id===editCliId);DB.clis[idx]=cli;}else DB.clis.push(cli);
+  saveDB();cerrar('m-cli');renderClis();
+}
+function delCli(id){confirm_del('¿Eliminar este cliente?',()=>{DB.clis=DB.clis.filter(c=>c.id!==id);saveDB();renderClis();});}
+function verCliCuentas(id){showPage('cuentas');setTimeout(()=>verDetalle(id),60);}
+
+// ============================================================
+// OTs
+// ============================================================
+function fillMesFilter(){
+  const meses=[...new Set(DB.ots.map(o=>o.fecha?.slice(0,7)).filter(Boolean))].sort();
+  $('f-mes-ot').innerHTML='<option value="">Todos los meses</option>'+meses.map(m=>`<option>${m}</option>`).join('');
+}
+function renderOTs(){
+  const q=($('q-ot')?.value||'').toLowerCase(),est=$('f-est-ot')?.value||'',mes=$('f-mes-ot')?.value||'';
+  let list=DB.ots.filter(o=>{
+    const mq=!q||o.ot.toLowerCase().includes(q)||cliNom(o.id_cli).toLowerCase().includes(q)||(o.dis||'').toLowerCase().includes(q);
+    return mq&&(!est||o.est_ot===est)&&(!mes||(o.fecha||'').startsWith(mes));
+  });
+  const tb=$('tb-ots'),em=$('empty-ots');
+  if(!list.length){tb.innerHTML='';em.style.display='';return;}
+  em.style.display='none';
+  tb.innerHTML=list.map(o=>`<tr>
+    <td><strong>${o.ot}</strong></td><td>${cliNom(o.id_cli)}</td><td>${fd(o.fecha)}</td><td>${fd(o.fent)}</td><td>${o.dis||'—'}</td>
+    <td><span class="badge b-pink">${(o.lineas||[]).length} línea${(o.lineas||[]).length!==1?'s':''}</span></td>
+    <td><strong>${fm(otTotal(o))}</strong></td><td>${badgeOT(o.est_ot)}</td>
+    <td><div class="tactions">
+      <button class="btn-icon" onclick="verOT('${o.ot}')">👁</button>
+      <button class="btn-icon" onclick="abrirOT('${o.ot}')">✏</button>
+      <button class="btn-icon danger" onclick="delOT('${o.ot}')">🗑</button>
+    </div></td></tr>`).join('');
+}
+function mkSel(opts,val,cb,sty=''){return`<select class="lsel" style="${sty}" onchange="${cb}">${opts.map(o=>`<option${o===val?' selected':''}>${o}</option>`).join('')}</select>`;}
+function mkSelP(opts,val,cb,sty=''){return`<select class="lsel" style="${sty}" onchange="${cb}"><option value="">—</option>${opts.map(o=>`<option${o===val?' selected':''}>${o}</option>`).join('')}</select>`;}
+function abrirOT(id=null){
+  editOTId=id;lineasF=[];
+  $('m-ot-title').textContent=id?'Editar OT':'Nueva Orden de Trabajo';
+  $('oi-cli').innerHTML=DB.clis.map(c=>`<option value="${c.id}">${c.id} — ${c.nom}</option>`).join('');
+  $('oi-dis').innerHTML='<option value="">Sin asignar</option>'+DB.cat['diseñadores'].map(d=>`<option>${d}</option>`).join('');
+  if(id){
+    const o=DB.ots.find(x=>x.ot===id);
+    $('oi-num').value=o.ot;$('oi-num').disabled=true;
+    $('oi-fecha').value=o.fecha||'';$('oi-fent').value=o.fent||'';
+    $('oi-cli').value=o.id_cli;$('oi-dis').value=o.dis||'';$('oi-est').value=o.est_ot;
+    lineasF=o.lineas.map(l=>({...l}));
+  }else{
+    $('oi-num').disabled=false;$('oi-num').value='';$('oi-fecha').value=today();$('oi-fent').value='';$('oi-est').value='En Proceso';lineasF=[];
+  }
+  renderLineas();abrir('m-ot');
+}
+function renderLineas(){
+  const body=$('lineas-body');
+  if(!lineasF.length){body.innerHTML=`<tr><td colspan="12" style="padding:22px;text-align:center;color:var(--muted);font-size:0.8rem;">Sin líneas. Haz clic en "+ Agregar Línea"</td></tr>`;updTotal();return;}
+  const pr=DB.cat.prendas,tl=DB.cat.tallas,sv=DB.cat.servicios,te=DB.cat.telas,co=DB.cat.costureros;
+  body.innerHTML=lineasF.map((l,i)=>`<tr>
+    <td style="color:var(--muted);font-weight:700;font-size:0.75rem;">${l.cs}</td>
+    <td>${mkSel(pr,l.prenda,`lineasF[${i}].prenda=this.value`,'min-width:108px;')}</td>
+    <td>${mkSel(tl,l.talla,`lineasF[${i}].talla=this.value`,'min-width:60px;')}</td>
+    <td>${mkSel(sv,l.servicio,`lineasF[${i}].servicio=this.value`,'min-width:110px;')}</td>
+    <td><input class="linput" type="number" style="width:58px;" value="${l.cant||0}" oninput="lineasF[${i}].cant=+this.value;rcLinea(${i})"></td>
+    <td>${mkSelP(te,l.tela,`lineasF[${i}].tela=this.value`,'min-width:95px;')}</td>
+    <td>${mkSelP(co,l.cost,`lineasF[${i}].cost=this.value`,'min-width:95px;')}</td>
+    <td><input class="linput" type="text" style="width:80px;" value="${l.ent||''}" oninput="lineasF[${i}].ent=this.value" placeholder="Texto..."></td>
+    <td><input class="linput" type="text" style="width:90px;" value="${l.glosa||''}" oninput="lineasF[${i}].glosa=this.value" placeholder="Glosa..."></td>
+    <td><input class="linput" type="number" style="width:65px;" value="${l.pu||0}" oninput="lineasF[${i}].pu=+this.value;rcLinea(${i})"></td>
+    <td id="tl-${i}" style="font-weight:700;color:var(--pk);white-space:nowrap;">${fm(l.total||0)}</td>
+    <td><button class="btn-icon danger" style="font-size:0.75rem;" onclick="delLinea(${i})">✕</button></td>
+  </tr>`).join('');
+  updTotal();
+}
+function rcLinea(i){lineasF[i].total=(lineasF[i].cant||0)*(lineasF[i].pu||0);const el=$(`tl-${i}`);if(el)el.textContent=fm(lineasF[i].total);updTotal();}
+function updTotal(){$('total-form').textContent=fm(lineasF.reduce((s,l)=>s+(parseFloat(l.total)||0),0));}
+function addLinea(){lineasF.push({cs:lineasF.length+1,prenda:DB.cat.prendas[0]||'',talla:DB.cat.tallas[0]||'',servicio:DB.cat.servicios[0]||'',cant:1,tela:'',cost:'',ent:'',glosa:'',pu:0,total:0});renderLineas();}
+function delLinea(i){lineasF.splice(i,1);lineasF.forEach((l,j)=>l.cs=j+1);renderLineas();}
+function guardarOT(){
+  const num=$('oi-num').value.trim(),cli=$('oi-cli').value;
+  if(!num){alert('N° OT es requerido.');return;}if(!cli){alert('Selecciona un cliente.');return;}
+  if(!editOTId&&DB.ots.find(o=>o.ot===num)){alert('Ya existe una OT con ese número.');return;}
+  if(!lineasF.length){alert('Agrega al menos una línea.');return;}
+  const ot={ot:num,id_cli:cli,fecha:$('oi-fecha').value,fent:$('oi-fent').value,dis:$('oi-dis').value||'',est_ot:$('oi-est').value,lineas:[...lineasF]};
+  if(editOTId){const idx=DB.ots.findIndex(o=>o.ot===editOTId);DB.ots[idx]=ot;}else DB.ots.push(ot);
+  saveDB();cerrar('m-ot');renderOTs();fillMesFilter();
+}
+function delOT(id){confirm_del(`¿Eliminar OT ${id}?`,()=>{DB.ots=DB.ots.filter(o=>o.ot!==id);DB.abonos=DB.abonos.filter(a=>a.ot_id!==id);saveDB();renderOTs();});}
+function verOT(id){
+  const o=DB.ots.find(x=>x.ot===id);if(!o)return;
+  const total=otTotal(o),abon=otAbonado(id),saldo=total-abon,pct=total>0?Math.min(100,abon/total*100):100,ep=estadoPago(o);
+  $('m-ver-title').textContent=`OT: ${o.ot}`;
+  $('btn-edit-ver').onclick=()=>{cerrar('m-ver-ot');abrirOT(id);};
+  $('m-ver-body').innerHTML=`
+    <div class="ot-hgrid">
+      <div class="ot-field"><div class="ofl">Cliente</div><div class="ofv">${cliNom(o.id_cli)}</div></div>
+      <div class="ot-field"><div class="ofl">Fecha Creación</div><div class="ofv">${fd(o.fecha)}</div></div>
+      <div class="ot-field"><div class="ofl">Fecha Entrega</div><div class="ofv">${fd(o.fent)}</div></div>
+      <div class="ot-field"><div class="ofl">Diseñador</div><div class="ofv">${o.dis||'—'}</div></div>
+      <div class="ot-field"><div class="ofl">Estado OT</div><div class="ofv">${badgeOT(o.est_ot)}</div></div>
+      <div class="ot-field"><div class="ofl">Estado Pago</div><div class="ofv">${badgePago(ep)}</div></div>
+    </div>
+    <div class="div"></div>
+    <h4 style="font-size:0.88rem;margin-bottom:10px;">Líneas de Servicio</h4>
+    <div class="table-wrap">
+      <table class="ltable">
+        <thead><tr><th>#</th><th>Prenda</th><th>Talla</th><th>Servicio</th><th>Cant.</th><th>Tela</th><th>Costurero</th><th>Entallado</th><th>Glosa</th><th>P.Unit.</th><th>Total</th></tr></thead>
+        <tbody>${(o.lineas||[]).map(l=>`<tr><td>${l.cs}</td><td>${l.prenda}</td><td>${l.talla}</td><td>${l.servicio}</td><td>${l.cant}</td><td>${l.tela||'—'}</td><td>${l.cost||'—'}</td><td>${l.ent||'—'}</td><td>${l.glosa||'—'}</td><td>${fm(l.pu)}</td><td><strong>${fm(l.total)}</strong></td></tr>`).join('')}</tbody>
+        <tfoot><tr><td colspan="10" class="ltotal">Total:</td><td class="ltotal" style="color:var(--pk);">${fm(total)}</td></tr></tfoot>
+      </table>
+    </div>
+    <div class="div"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;">
+      ${[['Total',fm(total),'var(--text)'],['Abonado',fm(abon),'#166534'],['Saldo',fm(saldo),saldo>0?'#9B1C1C':'#166534']].map(([l,v,col])=>`<div style="background:var(--pk-xpale);border-radius:var(--r-sm);padding:11px;"><div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;">${l}</div><div style="font-weight:700;margin-top:3px;color:${col};">${v}</div></div>`).join('')}
+    </div>
+    <div class="pbar"><div class="pfill" style="width:${pct}%;background:${ep==='Pagado'?'#22C55E':'var(--pk)'};"></div></div>`;
+  abrir('m-ver-ot');
+}
+
+// ============================================================
+// CUENTAS
+// ============================================================
+function renderCuentas(){
+  const q=($('q-cuenta')?.value||'').toLowerCase();
+  const clis=DB.clis.filter(c=>!q||c.nom.toLowerCase().includes(q)||c.id.toLowerCase().includes(q));
+  const cont=$('cuentas-body');
+  if(!clis.length){cont.innerHTML='<div class="empty"><div class="ei">💰</div><p>No hay clientes</p></div>';return;}
+  cont.innerHTML=clis.map(c=>{
+    const ots=DB.ots.filter(o=>o.id_cli===c.id);
+    const tf=ots.reduce((s,o)=>s+otTotal(o),0),ta=ots.reduce((s,o)=>s+otAbonado(o.ot),0),saldo=tf-ta,pct=tf>0?Math.min(100,ta/tf*100):100;
+    return`<div class="cc-card" onclick="verDetalle('${c.id}')">
+      <div>
+        <div style="font-weight:600;font-size:0.9rem;">${c.nom} <span style="color:var(--muted);font-size:0.76rem;">(${c.id})</span></div>
+        <div style="font-size:0.76rem;color:var(--muted);margin-top:2px;">${ots.length} OT${ots.length!==1?'s':''} · ${c.ciudad||'—'} · ${c.est==='Activo'?'<span style="color:#166534;">● Activo</span>':'<span style="color:#475569;">● Inactivo</span>'}</div>
+        <div style="margin-top:8px;width:220px;"><div class="pbar"><div class="pfill" style="width:${pct}%;"></div></div></div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;padding-left:16px;">
+        <div style="font-size:0.7rem;color:var(--muted);">Total Facturado</div>
+        <div style="font-weight:700;font-size:1rem;">${fm(tf)}</div>
+        <div style="font-size:0.76rem;margin-top:2px;color:${saldo>0?'#9B1C1C':'#166534'};">${saldo>0?'Debe: '+fm(saldo):'✓ Al día'}</div>
+        <div style="margin-top:5px;color:var(--muted);">→</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function verDetalle(cliId){
+  const c=DB.clis.find(x=>x.id===cliId);if(!c)return;
+  const ots=DB.ots.filter(o=>o.id_cli===cliId);
+  const tf=ots.reduce((s,o)=>s+otTotal(o),0),ta=ots.reduce((s,o)=>s+otAbonado(o.ot),0),saldo=tf-ta;
+  $('cuentas-list').style.display='none';$('cuentas-detail').style.display='';
+  $('cuenta-det').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+      <div><h2 style="font-size:1.4rem;">${c.nom}</h2><p style="color:var(--muted);font-size:0.82rem;margin-top:3px;">${c.id} · ${c.ciudad||''} · ${c.tel1||''}</p></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        ${[['Facturado',fm(tf),'var(--text)'],['Cobrado',fm(ta),'#166534'],['Saldo',fm(saldo),saldo>0?'#9B1C1C':'#166534']].map(([l,v,col])=>`<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;text-align:center;"><div style="font-size:0.68rem;text-transform:uppercase;color:var(--muted);">${l}</div><div style="font-weight:700;font-size:0.95rem;margin-top:2px;color:${col};">${v}</div></div>`).join('')}
+      </div>
+    </div>
+    ${!ots.length?'<div class="empty"><div class="ei">📋</div><p>Sin OTs</p></div>':
+      ots.map(o=>{
+        const ot2=otTotal(o),oa=otAbonado(o.ot),os=ot2-oa,pct2=ot2>0?Math.min(100,oa/ot2*100):100,ep=estadoPago(o),abs=DB.abonos.filter(a=>a.ot_id===o.ot);
+        return`<div class="card" style="margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><h4 style="font-size:0.98rem;">${o.ot}</h4>${badgeOT(o.est_ot)}${badgePago(ep)}<span style="font-size:0.76rem;color:var(--muted);">${fd(o.fecha)} · Entrega: ${fd(o.fent)}</span></div>
+            <div style="display:flex;gap:6px;"><button class="btn btn-sm btn-secondary" onclick="verOT('${o.ot}')">👁 Ver OT</button>${ep!=='Pagado'?`<button class="btn btn-sm btn-primary" onclick="abrirAbono('${o.ot}')">+ Abono</button>`:''}</div>
+          </div>
+          <div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap;">
+            ${[['Total OT',fm(ot2),'var(--text)'],['Abonado',fm(oa),'#166534'],['Saldo',fm(os),os>0?'#9B1C1C':'#166534']].map(([l,v,col])=>`<div><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;">${l}</div><div style="font-weight:600;font-size:0.9rem;margin-top:2px;color:${col};">${v}</div></div>`).join('')}
+          </div>
+          <div class="pbar" style="margin-bottom:12px;"><div class="pfill" style="width:${pct2}%;background:${ep==='Pagado'?'#22C55E':'var(--pk)'};"></div></div>
+          ${abs.length?`<div style="font-size:0.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:7px;">Historial de Abonos</div>${abs.map(a=>`<div class="abono-item"><div><span style="font-weight:500;">${a.nota||'Abono'}</span><span style="font-size:0.73rem;color:var(--muted);margin-left:7px;">${fd(a.fecha)}</span></div><div style="display:flex;align-items:center;gap:7px;"><strong style="color:#166534;">${fm(a.monto)}</strong><button class="btn-icon danger" style="font-size:0.7rem;" onclick="delAbono('${a.id}','${cliId}')">✕</button></div></div>`).join('')}`:''}
+        </div>`;
+      }).join('')}`;
+}
+function volverCuentas(){$('cuentas-list').style.display='';$('cuentas-detail').style.display='none';renderCuentas();}
+function abrirAbono(otId){$('ab-ot').value=otId;$('ab-fecha').value=today();$('ab-monto').value='';$('ab-nota').value='';abrir('m-abono');}
+function guardarAbono(){
+  const otId=$('ab-ot').value,monto=parseFloat($('ab-monto').value);
+  if(!monto||monto<=0){alert('Ingresa un monto válido.');return;}
+  DB.abonos.push({id:uid('AB'),ot_id:otId,fecha:$('ab-fecha').value,monto,nota:$('ab-nota').value.trim()});
+  saveDB();cerrar('m-abono');const o=DB.ots.find(x=>x.ot===otId);if(o)verDetalle(o.id_cli);
+}
+function delAbono(abId,cliId){confirm_del('¿Eliminar este abono?',()=>{DB.abonos=DB.abonos.filter(a=>a.id!==abId);saveDB();verDetalle(cliId);});}
+
+// ============================================================
+// REPORTES
+// ============================================================
+function switchReport(type,btn){document.querySelectorAll('.rtab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderReport(type);}
+function renderReport(type){
+  const label=type==='costurero'?'Costurero':'Diseñador',st={};
+  DB.ots.forEach(o=>(o.lineas||[]).forEach(l=>{
+    const key=type==='costurero'?(l.cost||'Sin asignar'):(o.dis||'Sin asignar');
+    if(!st[key])st[key]={nom:key,ots_set:new Set(),lineas:0,cant:0,fact:0};
+    st[key].ots_set.add(o.ot);st[key].lineas++;st[key].cant+=parseInt(l.cant)||0;st[key].fact+=parseFloat(l.total)||0;
+  }));
+  const list=Object.values(st).map(s=>({...s,ots:s.ots_set.size})).sort((a,b)=>b.fact-a.fact);
+  const cont=$('rep-content');
+  if(!list.length){cont.innerHTML='<div class="empty"><div class="ei">📊</div><p>No hay datos</p></div>';return;}
+  cont.innerHTML=`
+    <div class="charts-grid" style="margin-bottom:18px;">
+      <div class="chart-card"><h3>${label} — Unidades</h3><canvas id="ch-rc" height="210"></canvas></div>
+      <div class="chart-card"><h3>${label} — Facturado</h3><canvas id="ch-rf" height="210"></canvas></div>
+    </div>
+    <div class="card"><div class="table-wrap"><table class="dtable">
+      <thead><tr><th>${label}</th><th>OTs Participadas</th><th>Líneas de Servicio</th><th>Unidades Totales</th><th>Total Facturado</th></tr></thead>
+      <tbody>${list.map(r=>`<tr><td><strong>${r.nom}</strong></td><td><span class="badge b-blue">${r.ots}</span></td><td>${r.lineas}</td><td>${r.cant}</td><td><strong style="color:var(--pk);">${fm(r.fact)}</strong></td></tr>`).join('')}</tbody>
+    </table></div></div>`;
+  setTimeout(()=>{
+    dch('ch-rc');dch('ch-rf');
+    const c1=$('ch-rc')?.getContext('2d');
+    if(c1)charts['ch-rc']=new Chart(c1,{type:'bar',data:{labels:list.map(r=>r.nom),datasets:[{label:'Unidades',data:list.map(r=>r.cant),backgroundColor:CPKS,borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{font:{family:'DM Sans',size:10}}},x:{ticks:{font:{family:'DM Sans',size:10}}}}}});
+    const c2=$('ch-rf')?.getContext('2d');
+    if(c2)charts['ch-rf']=new Chart(c2,{type:'bar',data:{labels:list.map(r=>r.nom),datasets:[{label:'Bs.',data:list.map(r=>r.fact),backgroundColor:CPKS,borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{font:{family:'DM Sans',size:10}}},x:{ticks:{font:{family:'DM Sans',size:10}}}}}});
+  },50);
+}
+
+// ============================================================
+// EXPORTAR / IMPORTAR CONSOLIDADO
+// ============================================================
+function exportarConsolidado(){
+  const wb=XLSX.utils.book_new();
+
+  // ── HOJA 1: Base de Datos ─────────────────────────────────
+  // Una sección por categoría, separadas por fila vacía
+  const catRows=[];
+  CAT_KEYS.forEach(k=>{
+    catRows.push({Categoría:'=== '+CAT_LABELS[k].toUpperCase()+' ===',Ítem:''});
+    (DB.cat[k]||[]).forEach(it=>catRows.push({Categoría:CAT_LABELS[k],Ítem:it}));
+    catRows.push({Categoría:'',Ítem:''});
+  });
+  const wsCat=XLSX.utils.json_to_sheet(catRows);
+  wsCat['!cols']=[{wch:22},{wch:50}];
+  XLSX.utils.book_append_sheet(wb,wsCat,'Base de Datos');
+
+  // ── HOJA 2: Clientes ──────────────────────────────────────
+  const cliRows=DB.clis.map(c=>({
+    'ID':c.id,'Nombre/Razón Social':c.nom,'CI/NIT':c.ci,'Tipo':c.tipo,
+    'Tel 1':c.tel1,'Tel 2':c.tel2,'Email':c.email,'Canal':c.canal,
+    'Dirección':c.dir,'Ciudad':c.ciudad,'Límite Crédito':c.cred,
+    'Estado':c.est,'Notas':c.notas,'Fecha Registro':c.fecha_reg
+  }));
+  const wsCli=XLSX.utils.json_to_sheet(cliRows.length?cliRows:[{'ID':'','Nombre/Razón Social':''}]);
+  wsCli['!cols']=[{wch:12},{wch:30},{wch:14},{wch:14},{wch:14},{wch:14},{wch:28},{wch:16},{wch:30},{wch:16},{wch:14},{wch:10},{wch:30},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,wsCli,'Clientes');
+
+  // ── HOJA 3: Producción ────────────────────────────────────
+  const prodRows=[];
+  DB.ots.forEach(o=>(o.lineas||[]).forEach(l=>prodRows.push({
+    'OT':o.ot,'ID Cliente':o.id_cli,'Cliente':cliNom(o.id_cli),
+    'Fecha Creación':o.fecha,'Fecha Entrega':o.fent,'Diseñador':o.dis,'Estado OT':o.est_ot,
+    'COD SERV.':l.cs,'Prenda':l.prenda,'Talla':l.talla,'Servicio':l.servicio,
+    'Cantidad':l.cant,'Tela':l.tela,'Costurero':l.cost,'Entallado':l.ent,
+    'Glosa':l.glosa,'P. Unitario':l.pu,'Total Línea':l.total
+  })));
+  const wsProd=XLSX.utils.json_to_sheet(prodRows.length?prodRows:[{'OT':''}]);
+  wsProd['!cols']=[{wch:16},{wch:12},{wch:28},{wch:14},{wch:14},{wch:12},{wch:12},{wch:10},{wch:20},{wch:8},{wch:24},{wch:8},{wch:20},{wch:16},{wch:16},{wch:24},{wch:12},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,wsProd,'Producción');
+
+  // ── HOJA 4: Cuentas ──────────────────────────────────────
+  const cuentaRows=[];
+  DB.ots.forEach(o=>{
+    const abs=DB.abonos.filter(a=>a.ot_id===o.ot);
+    const totalOT=otTotal(o),totalAb=otAbonado(o.ot),saldo=totalOT-totalAb;
+    if(abs.length){
+      abs.forEach(a=>cuentaRows.push({
+        'OT':o.ot,'Cliente':cliNom(o.id_cli),'ID Cliente':o.id_cli,
+        'Total OT':totalOT,'Total Abonado':totalAb,'Saldo':saldo,'Estado Pago':estadoPago(o),
+        'ID Abono':a.id,'Fecha Abono':a.fecha,'Monto Abono':a.monto,'Nota Abono':a.nota
+      }));
+    }else{
+      cuentaRows.push({
+        'OT':o.ot,'Cliente':cliNom(o.id_cli),'ID Cliente':o.id_cli,
+        'Total OT':totalOT,'Total Abonado':0,'Saldo':totalOT,'Estado Pago':estadoPago(o),
+        'ID Abono':'','Fecha Abono':'','Monto Abono':'','Nota Abono':''
+      });
+    }
+  });
+  const wsCuenta=XLSX.utils.json_to_sheet(cuentaRows.length?cuentaRows:[{'OT':''}]);
+  wsCuenta['!cols']=[{wch:16},{wch:28},{wch:12},{wch:12},{wch:14},{wch:12},{wch:14},{wch:16},{wch:14},{wch:14},{wch:30}];
+  XLSX.utils.book_append_sheet(wb,wsCuenta,'Cuentas');
+
+  XLSX.writeFile(wb,`TINTA_Consolidado_${today()}.xlsx`);
+  cerrar('m-consolidado');
+}
+
+// ── IMPORTAR CONSOLIDADO ─────────────────────────────────────
+function importarConsolidado(){
+  const inp=$('file-import');
+  inp.onchange=e=>{
+    const f=e.target.files[0];if(!f)return;
+    const rd=new FileReader();
+    rd.onload=ev=>{
+      try{
+        const data=new Uint8Array(ev.target.result);
+        const wb=XLSX.read(data,{type:'array'});
+        let addCat=0,addCli=0,updCli=0,addOT=0,updOT=0,addAb=0;
+
+        // ── Hoja: Base de Datos
+        if(wb.SheetNames.includes('Base de Datos')){
+          const rows=XLSX.utils.sheet_to_json(wb.Sheets['Base de Datos']);
+          let curCat=null;
+          // reset categories from import
+          const newCat={};
+          rows.forEach(r=>{
+            const cat=r['Categoría']||'',item=r['Ítem']||'';
+            if(cat.startsWith('===')){
+              const label=cat.replace(/===/g,'').trim();
+              const key=Object.keys(CAT_LABELS).find(k=>CAT_LABELS[k].toUpperCase()===label);
+              if(key){curCat=key;if(!newCat[key])newCat[key]=[];}
+            }else if(curCat&&item.trim()){
+              if(!newCat[curCat].includes(item.trim().toUpperCase())){newCat[curCat].push(item.trim().toUpperCase());addCat++;}
+            }
+          });
+          CAT_KEYS.forEach(k=>{if(newCat[k]?.length)DB.cat[k]=newCat[k];});
+        }
+
+        // ── Hoja: Clientes
+        if(wb.SheetNames.includes('Clientes')){
+          const rows=XLSX.utils.sheet_to_json(wb.Sheets['Clientes']);
+          rows.forEach(r=>{
+            if(!r['ID']||!r['Nombre/Razón Social'])return;
+            const cli={id:String(r['ID']).trim(),nom:String(r['Nombre/Razón Social']).trim(),ci:r['CI/NIT']||'',tipo:r['Tipo']||'Individual',tel1:r['Tel 1']||'',tel2:r['Tel 2']||'',email:r['Email']||'',canal:r['Canal']||'WhatsApp',dir:r['Dirección']||'',ciudad:r['Ciudad']||'',cred:parseFloat(r['Límite Crédito'])||0,est:r['Estado']||'Activo',notas:r['Notas']||'',fecha_reg:r['Fecha Registro']||today()};
+            const idx=DB.clis.findIndex(c=>c.id===cli.id);
+            if(idx>=0){DB.clis[idx]=cli;updCli++;}else{DB.clis.push(cli);addCli++;}
+          });
+        }
+
+        // ── Hoja: Producción — reconstruir OTs
+        if(wb.SheetNames.includes('Producción')){
+          const rows=XLSX.utils.sheet_to_json(wb.Sheets['Producción']);
+          const otMap={};
+          rows.forEach(r=>{
+            if(!r['OT'])return;
+            const otId=String(r['OT']).trim();
+            if(!otMap[otId]){
+              otMap[otId]={ot:otId,id_cli:r['ID Cliente']||'',fecha:r['Fecha Creación']||'',fent:r['Fecha Entrega']||'',dis:r['Diseñador']||'',est_ot:r['Estado OT']||'En Proceso',lineas:[]};
+            }
+            otMap[otId].lineas.push({cs:r['COD SERV.']||otMap[otId].lineas.length+1,prenda:r['Prenda']||'',talla:r['Talla']||'',servicio:r['Servicio']||'',cant:parseFloat(r['Cantidad'])||0,tela:r['Tela']||'',cost:r['Costurero']||'',ent:r['Entallado']||'',glosa:r['Glosa']||'',pu:parseFloat(r['P. Unitario'])||0,total:parseFloat(r['Total Línea'])||0});
+          });
+          Object.values(otMap).forEach(ot=>{
+            const idx=DB.ots.findIndex(o=>o.ot===ot.ot);
+            if(idx>=0){DB.ots[idx]=ot;updOT++;}else{DB.ots.push(ot);addOT++;}
+          });
+        }
+
+        // ── Hoja: Cuentas — importar abonos nuevos
+        if(wb.SheetNames.includes('Cuentas')){
+          const rows=XLSX.utils.sheet_to_json(wb.Sheets['Cuentas']);
+          rows.forEach(r=>{
+            if(!r['ID Abono']||!r['OT'])return;
+            const abId=String(r['ID Abono']).trim();
+            if(!DB.abonos.find(a=>a.id===abId)){
+              DB.abonos.push({id:abId,ot_id:String(r['OT']).trim(),fecha:r['Fecha Abono']||today(),monto:parseFloat(r['Monto Abono'])||0,nota:r['Nota Abono']||''});
+              addAb++;
+            }
+          });
+        }
+
+        saveDB();
+        alert(`✅ Importación completada:\n\n• Catálogo: ${addCat} ítems procesados\n• Clientes: ${addCli} nuevos · ${updCli} actualizados\n• OTs: ${addOT} nuevas · ${updOT} actualizadas\n• Abonos: ${addAb} nuevos\n\nLos datos están cargados. Navega a cada módulo para verlos.`);
+        cerrar('m-consolidado');
+        // refresh si está visible
+        if($('page-clientes').classList.contains('active'))renderClis();
+        if($('page-produccion').classList.contains('active')){renderOTs();fillMesFilter();}
+        if($('page-catalogo').classList.contains('active'))renderCat();
+        if($('page-dashboard').classList.contains('active'))renderDash();
+      }catch(err){alert('Error al procesar el archivo: '+err.message);}
+    };
+    rd.readAsArrayBuffer(f);inp.value='';
+  };
+  inp.click();
+}
+
+// ── EXPORTAR MÓDULO INDIVIDUAL ────────────────────────────────
+function exportarModulo(tipo){
+  const wb=XLSX.utils.book_new();
+  if(tipo==='clientes'){
+    const rows=DB.clis.map(c=>({'ID':c.id,'Nombre/Razón Social':c.nom,'CI/NIT':c.ci,'Tipo':c.tipo,'Tel 1':c.tel1,'Tel 2':c.tel2,'Email':c.email,'Canal':c.canal,'Dirección':c.dir,'Ciudad':c.ciudad,'Límite Crédito':c.cred,'Estado':c.est,'Notas':c.notas,'Fecha Registro':c.fecha_reg}));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Clientes');
+    XLSX.writeFile(wb,`TINTA_Clientes_${today()}.xlsx`);
+  }else if(tipo==='produccion'){
+    const rows=[];DB.ots.forEach(o=>(o.lineas||[]).forEach(l=>rows.push({'OT':o.ot,'ID Cliente':o.id_cli,'Cliente':cliNom(o.id_cli),'Fecha Creación':o.fecha,'Fecha Entrega':o.fent,'Diseñador':o.dis,'Estado OT':o.est_ot,'COD SERV.':l.cs,'Prenda':l.prenda,'Talla':l.talla,'Servicio':l.servicio,'Cantidad':l.cant,'Tela':l.tela,'Costurero':l.cost,'Entallado':l.ent,'Glosa':l.glosa,'P. Unitario':l.pu,'Total Línea':l.total})));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Producción');
+    XLSX.writeFile(wb,`TINTA_Produccion_${today()}.xlsx`);
+  }
+}
+function importarModulo(tipo){
+  const inp=$('file-import');
+  inp.onchange=e=>{
+    const f=e.target.files[0];if(!f)return;
+    const rd=new FileReader();
+    rd.onload=ev=>{
+      const data=new Uint8Array(ev.target.result);
+      const wb=XLSX.read(data,{type:'array'});
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      let add=0,upd=0;
+      if(tipo==='clientes'){
+        rows.forEach(r=>{
+          if(!r['ID']||!r['Nombre/Razón Social'])return;
+          const cli={id:String(r['ID']).trim(),nom:String(r['Nombre/Razón Social']).trim(),ci:r['CI/NIT']||'',tipo:r['Tipo']||'Individual',tel1:r['Tel 1']||'',tel2:r['Tel 2']||'',email:r['Email']||'',canal:r['Canal']||'WhatsApp',dir:r['Dirección']||'',ciudad:r['Ciudad']||'',cred:parseFloat(r['Límite Crédito'])||0,est:r['Estado']||'Activo',notas:r['Notas']||'',fecha_reg:r['Fecha Registro']||today()};
+          const idx=DB.clis.findIndex(c=>c.id===cli.id);
+          if(idx>=0){DB.clis[idx]=cli;upd++;}else{DB.clis.push(cli);add++;}
+        });
+        saveDB();renderClis();alert(`${add} nuevo(s), ${upd} actualizado(s).`);
+      }
+      inp.value='';
+    };
+    rd.readAsArrayBuffer(f);
+  };
+  inp.click();
+}
+
+// ============================================================
+// BOTÓN CONSOLIDADO EN NAVBAR
+// ============================================================
+document.querySelector('.nav-links').insertAdjacentHTML('beforeend',
+  `<button class="btn btn-consolidado" style="margin-left:auto;font-size:0.78rem;padding:5px 11px;" onclick="abrir('m-consolidado')">📦 Consolidado</button>`
+);
+
+// ============================================================
+// INIT
+// ============================================================
+loadDB().then(() => {
+  showPage('dashboard');
+});
+</script>
+</body>
+</html>
